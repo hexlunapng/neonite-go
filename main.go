@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"neonite/structs"
+	"neonite-go/structs"
 )
 
 var version = "1.0"
