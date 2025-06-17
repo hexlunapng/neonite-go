@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"neonite-go/structs"
+	"neonite/structs"
 )
 
 var version = "1.0"
@@ -36,6 +36,7 @@ func main() {
 
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		structs.SendError(w, structs.Errors["not_found"], http.StatusNotFound)
+		structs.SendError(w, http.StatusBadRequest, "Invalid input")
 	})
 
 	log.Printf("Listening on port %s...\n", port)
