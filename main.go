@@ -5,10 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"neonite/structs"
 )
@@ -35,9 +33,9 @@ func main() {
 	}
 
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		structs.SendError(w, structs.Errors["not_found"], http.StatusNotFound)
-		structs.SendError(w, http.StatusBadRequest, "Invalid input")
-	})
+	structs.SendError(w, http.StatusNotFound, "not_found")
+})
+
 
 	log.Printf("Listening on port %s...\n", port)
 	http.ListenAndServe(":"+port, r)
