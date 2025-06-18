@@ -36,95 +36,106 @@ func oauthTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req Req
-	json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		structs.SendError(w, structs.Errors["invalid_request"].With("invalid JSON"), http.StatusBadRequest)
+		return
+	}
 
 	var displayName, accountId string
 
 	switch req.GrantType {
 	case "client_credentials", "refresh_token":
+		accountId = "client_user"
+		displayName = "client_user"
 
 	case "password":
 		if req.Username == "" {
 			structs.SendError(w, structs.Errors["invalid_request"].With("username"), http.StatusBadRequest)
 			return
 		}
-		if strings.Contains(req.Username, "@") {
-			displayName = strings.Split(req.Username, "@")[0]
-		} else {
-			displayName = req.Username
-		}
+		displayName = strings.Split(req.Username, "@")[0]
 		accountId = strings.ReplaceAll(displayName, " ", "_")
+
 	case "authorization_code":
 		if req.Code == "" {
 			structs.SendError(w, structs.Errors["invalid_request"].With("code"), http.StatusBadRequest)
 			return
 		}
-		displayName = req.Code
 		accountId = req.Code
+		displayName = req.Code
+
 	case "device_auth":
 		if req.AccountID == "" {
 			structs.SendError(w, structs.Errors["invalid_request"].With("account_id"), http.StatusBadRequest)
 			return
 		}
-		displayName = req.AccountID
 		accountId = req.AccountID
+		displayName = req.AccountID
+
 	case "exchange_code":
 		if req.ExchangeCode == "" {
 			structs.SendError(w, structs.Errors["invalid_request"].With("exchange_code"), http.StatusBadRequest)
 			return
 		}
-		displayName = req.ExchangeCode
 		accountId = req.ExchangeCode
+		displayName = req.ExchangeCode
+
 	default:
 		structs.SendError(w, structs.Errors["unsupported_grant_type"].With(req.GrantType), http.StatusBadRequest)
 		return
 	}
 
 	randomBytes := make([]byte, 16)
-	rand.Read(randomBytes)
+	if _, err := rand.Read(randomBytes); err != nil {
+		structs.SendError(w, structs.Errors["server_error"].With("failed to generate token"), http.StatusInternalServerError)
+		return
+	}
 	accessToken := hex.EncodeToString(randomBytes)
 
 	response := map[string]interface{}{
-		"access_token":          accessToken,
-		"expires_in":            28800,
-		"expires_at":            "9999-12-31T23:59:59.999Z",
-		"token_type":            "bearer",
-		"account_id":            accountId,
-		"client_id":             "ec684b8c687f479fadea3cb2ad83f5c6",
-		"internal_client":       true,
-		"client_service":        "fortnite",
-		"refresh_token":         "STATIC_REFRESH_TOKEN",
-		"refresh_expires":       115200,
-		"refresh_expires_at":    "9999-12-31T23:59:59.999Z",
-		"displayName":           displayName,
-		"app":                   "fortnite",
-		"in_app_id":             accountId,
-		"device_id":             "static-device-id",
+		"access_token":        accessToken,
+		"expires_in":          28800,
+		"expires_at":          "9999-12-31T23:59:59.999Z",
+		"token_type":          "bearer",
+		"account_id":          accountId,
+		"client_id":           "ec684b8c687f479fadea3cb2ad83f5c6",
+		"internal_client":     true,
+		"client_service":      "fortnite",
+		"refresh_token":       "STATIC_REFRESH_TOKEN",
+		"refresh_expires":     115200,
+		"refresh_expires_at":  "9999-12-31T23:59:59.999Z",
+		"displayName":         displayName,
+		"app":                 "fortnite",
+		"in_app_id":           accountId,
+		"device_id":           "static-device-id",
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func oauthVerifyHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	token = strings.TrimPrefix(token, "bearer ")
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "bearer ")
 
 	response := map[string]interface{}{
-		"access_token":         token,
-		"expires_in":           28800,
-		"expires_at":           "9999-12-31T23:59:59.999Z",
-		"token_type":           "bearer",
-		"refresh_token":        "STATIC_REFRESH_TOKEN",
-		"refresh_expires":      115200,
-		"refresh_expires_at":   "9999-12-31T23:59:59.999Z",
-		"account_id":           "ninja",
-		"client_id":            "3446cd72694c4a4485d81b77adbb2141",
-		"internal_client":      true,
-		"client_service":       "fortnite",
-		"displayName":          "ninja",
-		"app":                  "fortnite",
-		"in_app_id":            "ninja",
-		"device_id":            "static-device-id",
+		"access_token":        token,
+		"expires_in":          28800,
+		"expires_at":          "9999-12-31T23:59:59.999Z",
+		"token_type":          "bearer",
+		"refresh_token":       "STATIC_REFRESH_TOKEN",
+		"refresh_expires":     115200,
+		"refresh_expires_at":  "9999-12-31T23:59:59.999Z",
+		"account_id":          "ninja",
+		"client_id":           "3446cd72694c4a4485d81b77adbb2141",
+		"internal_client":     true,
+		"client_service":      "fortnite",
+		"displayName":         "ninja",
+		"app":                 "fortnite",
+		"in_app_id":           "ninja",
+		"device_id":           "static-device-id",
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -133,28 +144,30 @@ func killSessionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func accountByIDHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["accountId"]
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	id := mux.Vars(r)["accountId"]
+	response := map[string]interface{}{
 		"id":            id,
 		"displayName":   id,
 		"externalAuths": map[string]interface{}{},
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func accountByDisplayNameHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["displayName"]
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	name := mux.Vars(r)["displayName"]
+	response := map[string]interface{}{
 		"id":            name,
 		"displayName":   name,
 		"externalAuths": map[string]interface{}{},
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func accountBatchHandler(w http.ResponseWriter, r *http.Request) {
-	ids, ok := r.URL.Query()["accountId"]
-	if !ok || len(ids) == 0 {
+	ids := r.URL.Query()["accountId"]
+	if len(ids) == 0 {
 		http.Error(w, "Missing accountId", http.StatusBadRequest)
 		return
 	}
@@ -172,20 +185,24 @@ func accountBatchHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func deviceAuthListHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode([]interface{}{})
 }
 
 func deviceAuthCreateHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	json.NewEncoder(w).Encode(map[string]string{
+	response := map[string]string{
 		"accountId": vars["accountId"],
 		"deviceId":  "null",
 		"secret":    "null",
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func deviceAuthDeleteHandler(w http.ResponseWriter, r *http.Request) {

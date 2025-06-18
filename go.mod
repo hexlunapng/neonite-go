@@ -1,4 +1,5 @@
-module neonite
+module github.com/hexlunapng/neonite-go
+
 
 go 1.24.3
 
