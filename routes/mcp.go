@@ -3,37 +3,52 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"neonite-go/profile"
 	"neonite-go/structs"
-	"neonite-go/routes"
+	"neonite-go/structs/utils"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type CommandRequest struct {
-	SourceIndex             int      `json:"sourceIndex"`
-	TargetIndex             int      `json:"targetIndex"`
-	OptNewNameForTarget     string   `json:"optNewNameForTarget"`
-	Name                    string   `json:"name"`
-	LockerItem              string   `json:"lockerItem"`
-	ItemIds                 []string `json:"itemIds"`
-	OfferId                 string   `json:"offerId"`
-	GiftBoxItemIds          []string `json:"giftBoxItemIds"`
-	AffiliateName           string   `json:"affiliateName"`
-	SlotName                string   `json:"slotName"`
-	IndexWithinSlot         int      `json:"indexWithinSlot"`
-	ItemToSlot              string   `json:"itemToSlot"`
-	NewPlatform             string   `json:"newPlatform"`
-	BReceiveGifts           bool     `json:"bReceiveGifts"`
-	BFavorite               bool     `json:"bFavorite"`
-	TargetItemId            string   `json:"targetItemId"`
-	ItemFavStatus           []bool   `json:"itemFavStatus"`
-	Archived                bool     `json:"archived"`
+	SourceIndex         int      `json:"sourceIndex"`
+	TargetIndex         int      `json:"targetIndex"`
+	OptNewNameForTarget string   `json:"optNewNameForTarget"`
+	Name                string   `json:"name"`
+	LockerItem          string   `json:"lockerItem"`
+	ItemIds             []string `json:"itemIds"`
+	OfferId             string   `json:"offerId"`
+	GiftBoxItemIds      []string `json:"giftBoxItemIds"`
+	AffiliateName       string   `json:"affiliateName"`
+	SlotName            string   `json:"slotName"`
+	IndexWithinSlot     int      `json:"indexWithinSlot"`
+	ItemToSlot          string   `json:"itemToSlot"`
+	NewPlatform         string   `json:"newPlatform"`
+	BReceiveGifts       bool     `json:"bReceiveGifts"`
+	BFavorite           bool     `json:"bFavorite"`
+	TargetItemId        string   `json:"targetItemId"`
+	ItemFavStatus       []bool   `json:"itemFavStatus"`
+	Archived            bool     `json:"archived"`
+}
+
+func convertProfileChangesToInterfaces(changes []structs.ProfileChange) []interface{} {
+	result := make([]interface{}, len(changes))
+	for i, v := range changes {
+		result[i] = v
+	}
+	return result
+}
+
+func convertInterfacesToProfileChanges(changes []interface{}) []structs.ProfileChange {
+	result := make([]structs.ProfileChange, len(changes))
+	for i, v := range changes {
+		result[i] = v.(structs.ProfileChange)
+	}
+	return result
 }
 
 func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +144,9 @@ func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
 			utils.WriteError(w, structs.NewAPIError("invalid_profile").With(profileId))
 			return
 		}
-		profile.ModifyStat(data, "allowed_to_receive_gifts", reqBody.BReceiveGifts, &response.ProfileChanges)
+		changesInterface := convertProfileChangesToInterfaces(response.ProfileChanges)
+		profile.ModifyStat(data, "allowed_to_receive_gifts", reqBody.BReceiveGifts, &changesInterface)
+		response.ProfileChanges = convertInterfacesToProfileChanges(changesInterface)
 	case "SetItemFavoriteStatus":
 		if profileId != "athena" {
 			utils.WriteError(w, structs.NewAPIError("invalid_profile").With(profileId))
@@ -137,7 +154,9 @@ func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		item := data.Items[reqBody.TargetItemId]
 		if item != nil && item.Attributes["favorite"] != reqBody.BFavorite {
-			profile.ChangeItemAttribute(data, reqBody.TargetItemId, "favorite", reqBody.BFavorite, &response.ProfileChanges)
+			changesInterface := convertProfileChangesToInterfaces(response.ProfileChanges)
+			profile.ChangeItemAttribute(data, reqBody.TargetItemId, "favorite", reqBody.BFavorite, &changesInterface)
+			response.ProfileChanges = convertInterfacesToProfileChanges(changesInterface)
 		}
 	case "SetItemFavoriteStatusBatch":
 		if profileId != "athena" {
@@ -146,7 +165,9 @@ func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		for i, itemId := range reqBody.ItemIds {
 			if i < len(reqBody.ItemFavStatus) {
-				profile.ChangeItemAttribute(data, itemId, "favorite", reqBody.ItemFavStatus[i], &response.ProfileChanges)
+				changesInterface := convertProfileChangesToInterfaces(response.ProfileChanges)
+				profile.ChangeItemAttribute(data, itemId, "favorite", reqBody.ItemFavStatus[i], &changesInterface)
+				response.ProfileChanges = convertInterfacesToProfileChanges(changesInterface)
 			}
 		}
 	case "SetItemArchivedStatusBatch":
@@ -155,7 +176,9 @@ func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, itemId := range reqBody.ItemIds {
-			profile.ChangeItemAttribute(data, itemId, "archived", reqBody.Archived, &response.ProfileChanges)
+			changesInterface := convertProfileChangesToInterfaces(response.ProfileChanges)
+			profile.ChangeItemAttribute(data, itemId, "archived", reqBody.Archived, &changesInterface)
+			response.ProfileChanges = convertInterfacesToProfileChanges(changesInterface)
 		}
 	default:
 		utils.WriteError(w, structs.NewAPIError("unsupported_command").With(command))
@@ -169,5 +192,5 @@ func ProfileCommandHandler(w http.ResponseWriter, r *http.Request) {
 		profile.SaveProfile(accountId, profileId, data)
 	}
 
- json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(response)
 }
