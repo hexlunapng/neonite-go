@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RegisterGameV2Routes(r *mux.Router) {
+func RegisterPermission(r *mux.Router) {
 	r.HandleFunc("/fortnite/api/game/v2/grant_access/{rest:.*}", GrantAccessHandler).Methods("POST")
 	r.HandleFunc("/waitingroom/api/waitingroom", WaitingRoomHandler).Methods("GET")
 	r.HandleFunc("/fortnite/api/game/v2/enabled_features", EnabledFeaturesHandler).Methods("GET")

@@ -28,6 +28,7 @@ func main() {
 	routes.RegistertryPlayOnPlatformRoute(r)
 	routes.RegisterStorefrontRoutes(r)
 	routes.RegisterLightswitchRoutes(r)
+	routes.RegisterPermission(r)
 
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		structs.SendError(w, http.StatusNotFound, "not_found")
