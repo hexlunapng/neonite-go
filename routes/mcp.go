@@ -3,9 +3,8 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
-	"neonite/internal/structs"
-	"neonite/pkg/profile"
-	"neonite/pkg/utils"
+	"neonite-go/structs"
+	"neonite-go/routes"
 	"net/http"
 	"os"
 	"path/filepath"
