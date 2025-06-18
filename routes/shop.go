@@ -1,7 +1,7 @@
-package managers
+package routes
+
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 )

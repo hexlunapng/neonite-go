@@ -1,4 +1,5 @@
-package main
+package routes
+
 
 import (
 	"encoding/json"
@@ -7,7 +8,6 @@ import (
 	"time"
 	"io/ioutil"
 	"context"
-	"log"
 
 	"github.com/go-chi/chi/v5"
 )

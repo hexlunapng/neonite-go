@@ -1,4 +1,4 @@
-package party
+package routes
 
 import (
 	"encoding/json"
